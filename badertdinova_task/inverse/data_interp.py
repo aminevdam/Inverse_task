@@ -1,5 +1,7 @@
 import numpy as np
 import scipy
+from inverse_config import Pk, Rk, t_end, rc
+
 
 def well_pressure():
     """well presure from experiment"""

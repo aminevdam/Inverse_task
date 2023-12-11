@@ -68,15 +68,15 @@ def finite_diffs(Nh, Nt):
 
             if error < epsilon:
                 break
-        print(y)
     return P, u, t
 
-P, u, t = finite_diffs(50, 40)
+# P, u, t = finite_diffs(200, 20)
 
-plt.plot(np.exp(u), P[:,0]/Pk)
-plt.plot(np.exp(u), P[:,1]/Pk)
-plt.plot(np.exp(u), P[:,5]/Pk)
-plt.plot(np.exp(u), P[:,8]/Pk)
-plt.show()
-plt.plot(t, P[0,:]/Pk)
-plt.show()
+# plt.plot(np.exp(u), P[:,0]/Pk)
+# plt.plot(np.exp(u), P[:,1]/Pk)
+# plt.plot(np.exp(u), P[:,5]/Pk)
+# plt.plot(np.exp(u), P[:,-1]/Pk)
+# plt.show()
+# plt.plot(t, P[0,:]/Pk)
+# plt.xscale('log')
+# plt.show()

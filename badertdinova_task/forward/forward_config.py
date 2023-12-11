@@ -15,4 +15,4 @@ t0 = 0
 t_end = 5*86400
 ro_oil0 = 800
 S = 2*np.pi*H
-device = 'cpu'
+device = 'cuda'

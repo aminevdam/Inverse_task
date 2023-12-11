@@ -1,22 +1,39 @@
-import matplotlib.cm as cm
-import time
 import torch
-from torch.optim.lr_scheduler import ExponentialLR
-from forward_config import device, r0, betta, t_end, k, Q, Pk, S, C_skv
-from forward_utils import mu_oil
+from inverse_config import device, r0, betta, t_end,  Q, Pk, S
+from inverse_utils import mu_oil
 
 
 class DNN(torch.nn.Module):
-    def __init__(self, model, tol, n_t):
+    def __init__(self, model, G, k, C_skv, mu_h, tol, n_t):
         super(DNN, self).__init__()
         self.net = model
         self.tol = tol
+
+        self.G = torch.tensor([G], requires_grad=False).float().to(device)
+        self.G = torch.nn.Parameter(self.G)
+        self.net.register_parameter('G', self.G)
+
+        self.k = torch.tensor([k], requires_grad=False).float().to(device)
+        self.k = torch.nn.Parameter(self.k)
+        self.net.register_parameter('k', self.k)
+
+        self.C_skv = torch.tensor([C_skv], requires_grad=False).float().to(device)
+        self.C_skv = torch.nn.Parameter(self.C_skv)
+        self.net.register_parameter('C_skv', self.C_skv)
+
+        self.mu_h = torch.tensor([mu_h], requires_grad=False).float().to(device)
+        self.mu_h = torch.nn.Parameter(self.mu_h)
+        self.net.register_parameter('mu_h', self.mu_h)
+
         self.n_t = n_t
+        self.tol = tol
         self.M = torch.triu(torch.ones((self.n_t, self.n_t)), diagonal=1).T.to(device)
+
 
     # Forward Feed
     def forward(self, x):
         return self.net(x)
+
 
     # Loss function for PDE
     def loss_pde(self, x):
@@ -27,13 +44,14 @@ class DNN(torch.nn.Module):
         dp_g, = torch.autograd.grad(p, x, create_graph=True)
         p_x, p_t = dp_g[:, 1:], dp_g[:, 0:1]
 
-        p1 = 1./mu_oil(p_x, x[:,1:])*p_x
+        p1 = 1./mu_oil(p_x, x[:,1:], self.G, self.mu_h)*p_x
 
         d2p_g, = torch.autograd.grad(p1.sum(0), x, create_graph=True)
 
-        p_xx, _ = d2p_g[:, 1:], d2p_g[:, 0:1]
+        p_xx, p_xt = d2p_g[:, 1:], d2p_g[:, 0:1]
 
-        f = torch.exp(2*x[:,1:])*r0**2*betta/t_end/k*p_t - p_xx
+        # Loss function for the Euler Equations
+        f = torch.exp(2*x[:,1:])*r0**2*betta/t_end/self.k*1e-14*p_t - p_xx
 
         return f
 
@@ -59,7 +77,7 @@ class DNN(torch.nn.Module):
         p = y[:, 0:1].sum(0)
         dp_g, = torch.autograd.grad(p, x_bc, create_graph=True)
         p_x, p_t = dp_g[:, 1:], dp_g[:, 0:1]
-        loss_bc = (p_x - Q * mu_oil(p_x, x_bc[:,1:]) / (Pk*k*S) -
-                   C_skv * mu_oil(p_x, x_bc[:,1:]) / (t_end*S*k)*p_t)**2
+        loss_bc = (p_x - Q * mu_oil(p_x, x_bc[:,1:], self.G, self.mu_h) / 
+                   (Pk * self.k*1e-14 * S) - self.C_skv*1e-6 * mu_oil(p_x, x_bc[:,1:], self.G, self.mu_h) / (t_end * S * self.k*1e-14) * p_t)**2
 
         return loss_bc
