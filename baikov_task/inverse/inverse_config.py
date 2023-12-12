@@ -16,7 +16,7 @@ t_end = 86400*1
 
 # initial guess
 G = 0.09
-glad = 0.8
-mu_h = 27.
+glad = 2.
+mu_h = 25.
 
 device = 'cuda'

@@ -1,8 +1,20 @@
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy import interpolate
 from inverse_utils import mu_oil
 from inverse_config import t_end, k, betta, L, Q, S, Pk, C_skv, device
 
+velocity = np.loadtxt("data/W.txt", delimiter='\t', dtype=np.float64)
+gradient = np.loadtxt("data/grad.txt", delimiter='\t', dtype=np.float64)
+
+velocity = velocity[:-3]*1e7  # W*1e+7 m/s*1e+7
+gradient = gradient[:-3]/1e5 # atm/m
+
+velocity[0] = 0
+gradient[0] = 0
+
+f = interpolate.interp1d(gradient, velocity)
 
 class DNN(torch.nn.Module):
     def __init__(self, model, G, glad, mu_h):
@@ -56,7 +68,12 @@ class DNN(torch.nn.Module):
         w = k*p_x[idx]/mu_oil(p_x[idx], self.G, self.glad, self.mu_h)*Pk/L*1e7
         w1 = k*p_x/mu_oil(p_x, self.G, self.glad, self.mu_h)*Pk/L*1e7
         w_data = torch.from_numpy(data(p_x[idx].detach().cpu().numpy()*Pk/L/1e5)).float().to(device)
-
+        if self.i%2000==0:
+            plt.plot(dp_dx*Pk/L/1e5, w1.detach().cpu().numpy(), '+')
+            plt.plot(gradient, f(gradient), '-.', label = 'Интерполяция')
+            plt.ylim(0, 0.8)
+            plt.xlim(0, 1.5)
+            plt.show()
         if self.i%100==0:
             self.velocity.append(w.detach().cpu().numpy())
             self.dp_grad.append(dp_dx[idx]*Pk/L/1e5)
