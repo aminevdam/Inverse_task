@@ -17,7 +17,7 @@ S = 2*np.pi*H
 device = 'cuda'
 
 # initial guess
-G = 1. # *1e+4
+G = 2. # *1e+4
 C_skv = 1. # *1e-6
 k = 1. # *1e-14
 mu_h = 1. # *25e-3
